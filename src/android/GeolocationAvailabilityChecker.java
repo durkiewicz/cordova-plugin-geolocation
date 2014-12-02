@@ -25,6 +25,9 @@ import org.json.JSONArray;
 
 import android.content.Context;
 import android.location.LocationManager;
+import android.os.Build;
+import android.provider.Settings;
+import android.text.TextUtils;
 
 public class GeolocationAvailabilityChecker extends CordovaPlugin {
     /**
@@ -37,7 +40,7 @@ public class GeolocationAvailabilityChecker extends CordovaPlugin {
      */
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) {
         if (action.equals("check")) {
-            PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, this.check());
+            PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, isLocationEnabled(this.cordova.getActivity()));
             pluginResult.setKeepCallback(true);
             callbackContext.sendPluginResult(pluginResult);
             
@@ -46,10 +49,25 @@ public class GeolocationAvailabilityChecker extends CordovaPlugin {
 
         return false;
     }
+    
+    @SuppressWarnings("deprecation")
+	public static boolean isLocationEnabled(Context context) {
+        int locationMode = 0;
+        String locationProviders;
 
-    private boolean check() {
-        LocationManager locationManager = (LocationManager)this.cordova.getActivity().getSystemService(Context.LOCATION_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            try {
+                locationMode = Settings.Secure.getInt(context.getContentResolver(), Settings.Secure.LOCATION_MODE);
 
-        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+            } catch (Settings.SettingNotFoundException e) {
+                e.printStackTrace();
+            }
+
+            return locationMode != Settings.Secure.LOCATION_MODE_OFF;
+
+        } else {
+            locationProviders = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.LOCATION_PROVIDERS_ALLOWED);
+            return !TextUtils.isEmpty(locationProviders);
+        }
     }
 }
